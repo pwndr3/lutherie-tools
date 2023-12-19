@@ -5,9 +5,8 @@
 # so I chose to generate ellipses to have a consistent way of generating these plots that is not so hard to
 # do on paper either.
 #
-# In the case where the face and back profiles are same, all of these will simply generate semi-circles and you
-# probably won't need this tool.
-#
+# In the case where the face and back profiles are same, this script will simply generate semi-circles and you 
+# probably don't need this tool.
 ###
 import numpy as np
 import matplotlib.pyplot as plt
