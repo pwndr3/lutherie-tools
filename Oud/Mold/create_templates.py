@@ -12,14 +12,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 
-def generate_template_for_single_section(face_radius, back_radius, num_ribs, figsize=(16,12), save_to_file=None):
+def generate_template_for_single_section(face_radius, back_radius, num_ribs, width_section=35, dpi=300, for_printing=False, save_to_file=None):
     """Generate template for a single section
 
     Args:
-        face_radius (float): Face radius at the section position
-        back_radius (float): Bowl depth at the section position
+        face_radius (float): Face radius in mm at the section position
+        back_radius (float): Bowl depth in mm at the section position
         num_ribs (int): Total number of ribs
-        figsize (tuple, optional): Figure size. Defaults to (16,12).
+        width_section (float, optional): Size in mm of the section, drawn as a semi-circle. Defaults to 35 mm.
+        dpi (int, optional): Pixels per inch. Defaults to 300.
+        for_printing (bool, optional): If True, generate plot for printing.
         save_to_file (str, optional): If other than None, this is the output filename. Defaults to None.
     """
     def plot_half_circle(r):
@@ -32,15 +34,19 @@ def generate_template_for_single_section(face_radius, back_radius, num_ribs, fig
         y = y[::-1]
         plt.plot(x, y, "--", c="k", alpha=0.5)
 
-    fig = plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=(2*face_radius/25.4,back_radius/25.4), dpi=dpi)
 
     # This is the number of divisions for the quarter circle, not counting the center rib
     num_divisions = num_ribs // 2
 
     # Draw all 3 circles
-    plot_half_circle(face_radius)
-    plot_half_circle(back_radius)
-    plot_half_circle((face_radius+back_radius)/2)
+    if not for_printing:
+        plot_half_circle(face_radius)
+        plot_half_circle(back_radius)
+        plot_half_circle((face_radius+back_radius)/2)
+
+    # Plot width of section
+    plot_half_circle(face_radius - width_section)
 
     # Generate divisions
     delta_angle = 180 / num_ribs # Assumes ribs are linearly spaced in phase space
@@ -69,8 +75,8 @@ def generate_template_for_single_section(face_radius, back_radius, num_ribs, fig
     x_coords = np.array(x_coords)
     y_coords = np.array(y_coords)
 
-    plt.plot(x_coords, y_coords, ".-", c="tab:blue", markersize=20, linewidth=3)
-    plt.plot(-x_coords[::-1][1:], y_coords[::-1][1:], ".-", c="tab:blue", markersize=20, linewidth=3)
+    plt.plot(x_coords, y_coords, ".-", c="tab:blue", markersize=5 if for_printing else 20, linewidth=1 if for_printing else 3)
+    plt.plot(-x_coords[::-1][1:], y_coords[::-1][1:], ".-", c="tab:blue", markersize=5 if for_printing else 20, linewidth=1 if for_printing else 3)
 
     for i in range(len(x_coords)-1):
         # Plot rib line
@@ -78,7 +84,8 @@ def generate_template_for_single_section(face_radius, back_radius, num_ribs, fig
         plt.plot([0,-x_coords[i]], [0, y_coords[i]], "--", c="tab:blue")
 
         # Plot text
-        plt.text(x_coords[i], y_coords[i]+0.03*max(face_radius, back_radius), f"({round(x_coords[i],1)}, {round(y_coords[i],1)})", color="k", fontsize=12, fontweight="bold")
+        if not for_printing:
+            plt.text(x_coords[i], y_coords[i]+0.03*max(face_radius, back_radius), f"({round(x_coords[i],1)}, {round(y_coords[i],1)})", color="k", fontsize=12, fontweight="bold")
 
     # Plot
     fig.axes[0].xaxis.set_major_locator(plticker.MultipleLocator(20))
@@ -87,23 +94,42 @@ def generate_template_for_single_section(face_radius, back_radius, num_ribs, fig
     fig.axes[0].yaxis.set_minor_locator(plticker.MultipleLocator(5))
     plt.grid(which="major", linewidth=1)
     plt.grid(which="minor", linewidth=0.2)
-    plt.axis("equal")
-    plt.xlabel("x coordinate (mm)", fontsize=16)
-    plt.ylabel("y coordinate (mm)", fontsize=16)
-    plt.margins(0)
+
+    if not for_printing:
+        plt.xlabel("x coordinate (mm)", fontsize=16)
+        plt.ylabel("y coordinate (mm)", fontsize=16)
+
+        plt.margins(0)
+    else:
+        fig.axes[0].xaxis.set_ticklabels([])
+        fig.axes[0].yaxis.set_ticklabels([])
+
+        plt.xlim(-face_radius, face_radius)
+        plt.ylim(0, back_radius)
+
+        fig.subplots_adjust(
+            left=0,
+            bottom=0,
+            right=1,
+            top=1
+        )
 
     # Save to file if asked
     if save_to_file is not None:
-        plt.savefig(save_to_file, bbox_inches="tight")
+        plt.savefig(save_to_file, dpi=dpi)
     else:
         plt.show()
 
 if __name__ == "__main__":
     # Generate all sections - here is an example
     N = 15
-    pos = [100, 200, 300]
-    face = [150, 180, 200]
-    back = [160, 200, 210]
+    pos = np.arange(1,10+1)
+    face = [94,118,148,168,181,181,164,153,139,119]
+    back = [109,133,160,177,186,183,168,156,143,122]
 
+    # Generate separate sections
     for i in range(len(pos)):
-        generate_template_for_single_section(face[i], back[i], N, save_to_file=f"{pos[i]}.png")
+        generate_template_for_single_section(face[i], back[i], N, for_printing=True, save_to_file=f"{pos[i]}.png")
+
+    generate_template_for_single_section(76, 91, N, for_printing=True, save_to_file=f"front.png")
+    generate_template_for_single_section(82, 86, N, for_printing=True, save_to_file=f"back.png")
